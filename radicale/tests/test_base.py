@@ -1038,3 +1038,30 @@ class TestLogging(LogCaptureMixIn, BaseFileSystemTest):
         log_msgs = self.get_log_messages()
         assert "ERROR:Error filtering item 'this-is-broken.ics'" in log_msgs
         assert "ERROR:Error processing /calendar.ics/:" in log_msgs
+
+class TestRegressions(LogCaptureMixIn, BaseFileSystemTest):
+    """Test some regressions."""
+    # Use the multifilesystem
+    storage_type = "multifilesystem"
+
+    def test_compare_offset_naive_and_offset_aware_datetimes(self):
+        self.request("MKCOL", "/calendar.ics/")
+        self.request(
+            "PUT", "/calendar.ics/", "BEGIN:VCALENDAR\r\nEND:VCALENDAR")
+        event = get_file_content("broken-vevent2.ics")
+        path = "/calendar.ics/event1.ics"
+        status, headers, answer = self.request("PUT", path, event)
+        status, headers, answer = self.request(
+            "REPORT", "/calendar.ics/",
+            '''<?xml version="1.0" encoding="UTF-8" ?>
+            <CAL:calendar-query xmlns="DAV:"
+              xmlns:CAL="urn:ietf:params:xml:ns:caldav">
+            <prop><getetag /></prop>
+            <CAL:filter>
+              <CAL:comp-filter name="VCALENDAR">
+              <CAL:comp-filter name="VEVENT">
+                <CAL:time-range start="20170501T120000Z" />
+            </CAL:comp-filter></CAL:comp-filter></CAL:filter>
+            </CAL:calendar-query>''')
+        log_msgs = self.get_log_messages()
+        print(log_msgs)
