@@ -230,8 +230,13 @@ def _time_range_match(vobject_item, filter_, child_name):
 
     # Comments give the lines in the tables of the specification
     if child_name == "VEVENT":
+        dtstart = getattr(child, "dtstart", None)
+        if dtstart is None:
+            # Don't match if the event does not have any start date.
+            return False
+
         # TODO: check if there's a timezone
-        dtstart = child.dtstart.value
+        dtstart = dtstart.value
 
         if child.rruleset:
             dtstarts = child.getrruleset(addRDate=True)

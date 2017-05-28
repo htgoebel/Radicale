@@ -1065,3 +1065,25 @@ class TestRegressions(LogCaptureMixIn, BaseFileSystemTest):
             </CAL:calendar-query>''')
         log_msgs = self.get_log_messages()
         print(log_msgs)
+
+    def test_vevent_without_dtstart(self):
+        """Test if an error when processing a request reports the uri with
+        level ERROR."""
+        self.request("MKCOL", "/calendar.ics/")
+        self.request(
+            "PUT", "/calendar.ics/", "BEGIN:VCALENDAR\r\nEND:VCALENDAR")
+        event = get_file_content("broken-vevent3.ics")
+        path = "/calendar.ics/this-is-broken.ics"
+        status, headers, answer = self.request("PUT", path, event)
+        status, headers, answer = self.request(
+            "REPORT", "/calendar.ics/",
+            '''<?xml version="1.0" encoding="UTF-8" ?>
+            <CAL:calendar-query xmlns="DAV:"
+              xmlns:CAL="urn:ietf:params:xml:ns:caldav">
+            <prop><getetag /></prop>
+            <CAL:filter>
+              <CAL:comp-filter name="VCALENDAR">
+              <CAL:comp-filter name="VEVENT">
+                <CAL:time-range start="20160501T120000Z" />
+            </CAL:comp-filter>
+            </CAL:comp-filter></CAL:filter></CAL:calendar-query>''')
